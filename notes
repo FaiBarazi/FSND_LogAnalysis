@@ -1,0 +1,17 @@
+notes:
+create view  popular_articles as
+select slug,count(*) as views from 
+(select slug,path from articles, log where log.path like '%'||articles.slug||'%')
+as new_log group by new_log.slug order by views desc;
+
+select name,SUM(views) as views from (select authors.name, articles.slug, popular_articles.views from popular_articles, articles, authors where
+authors.id = articles.author and popular_articles.slug = articles.slug) as best_authors group by name order by views desc;
+
+create view total_log as select date(time) as date,count(log.status) as total_views from log where status = '404 NOT FOUND' or status = '200 OK' group by date;
+
+create view  failed_log  as select date(time) as date,count(status) as failed_views from log where status = '404 NOT FOUND' group by date;
+
+select failed_log.date, 100.0 * (failed_log.failed_views::real/total_log.total_views::real) as failure_percentage from failed_log,total_log where failed_log.date = total_log.date order by failure_percentage desc;
+
+
+
